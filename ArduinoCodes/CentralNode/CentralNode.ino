@@ -1,22 +1,13 @@
-#include <Wire.h>
-#include <LiquidCrystal_I2C.h>
-
-// LCD I2C address: usually 0x27 or 0x3F
-LiquidCrystal_I2C lcd(0x3F, 20, 4);
-
 int lightSensorLeft = 0;
 int lightSensorRight = 0;
 int thresholdForLightSensors = 5;
 int temperatureSensor;
 
 void setup() {
-  lcd.begin(20, 4);
-  lcd.backlight();
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Sensors Ready");
+  Serial.begin(9600);
+  Serial.println("Master Ready");
   delay(2000);
-  lcd.clear();
+  Serial.println();
 }
 
 void loop() {
@@ -26,7 +17,7 @@ void loop() {
 
   int diff = lightSensorLeft - lightSensorRight;
 
-  // Simulated servo positions (you can add servo control later)
+  // Simulated servo positions
   int pos;
   if (diff > thresholdForLightSensors) {
     pos = 1167;
@@ -40,22 +31,20 @@ void loop() {
   float mv = (temperatureSensor / 1024.0) * 5000.0;  // in millivolts
   float cel = mv / 10.0; // LM35: 10mV per degree Celsius
 
-  // Display on LCD
-  lcd.setCursor(0, 0);
-  lcd.print("Left Light : ");
-  lcd.print(lightSensorLeft);
+  // Display on Serial Monitor (Virtual Terminal)
+  Serial.print("Left Light : ");
+  Serial.println(lightSensorLeft);
 
-  lcd.setCursor(0, 1);
-  lcd.print("Right Light: ");
-  lcd.print(lightSensorRight);
+  Serial.print("Right Light: ");
+  Serial.println(lightSensorRight);
 
-  lcd.setCursor(0, 2);
-  lcd.print("Temp (C): ");
-  lcd.print(cel, 1); // one decimal place
+  Serial.print("Temp (C): ");
+  Serial.println(cel, 1); // one decimal place
 
-  lcd.setCursor(0, 3);
-  lcd.print("Servo Pos: ");
-  lcd.print(pos);
+  Serial.print("Servo Pos: ");
+  Serial.println(pos);
+
+  Serial.println("------------------------");
 
   delay(500);
 }
