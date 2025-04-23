@@ -1,9 +1,13 @@
+
+#include <Wire.h>
+
 int lightSensorLeft = 0;
 int lightSensorRight = 0;
 int thresholdForLightSensors = 5;
 int temperatureSensor;
 
 void setup() {
+  Wire.begin();  // Join I2C bus as master
   Serial.begin(9600);
   Serial.println("Master Ready");
   delay(2000);
@@ -11,6 +15,14 @@ void setup() {
 }
 
 void loop() {
+  Wire.requestFrom(8, 1);
+  int slaveValue = -1;
+  while (Wire.available()) {
+    slaveValue = Wire.read();
+    Serial.print("Moisture: ");
+    Serial.println(slaveValue);
+  }
+
   lightSensorLeft = analogRead(A0);
   lightSensorRight = analogRead(A1);
   temperatureSensor = analogRead(A2);
