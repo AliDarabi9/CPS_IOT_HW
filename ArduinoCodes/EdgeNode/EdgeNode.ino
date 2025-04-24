@@ -36,8 +36,8 @@ void loop() {
 
   data = convertVolts(SensorVolts);
 
-  int angle = map(servoPosition, 1000, 2000, 0, 180);
-  myservo.write(angle);
+  adjustServoPosition();
+  myservo.write(servoPosition);
 
   st = analogRead(pot) / 2;
   analogWrite(en, st);
@@ -48,6 +48,7 @@ void loop() {
   Serial.println(SensorVolts, 2);
 
   Serial.print("Servo Angle: ");
+  int angle = map(servoPosition, 1000, 2000, 0, 180);
   Serial.println(angle);
 
   Serial.print("Motor Speed: ");
@@ -56,6 +57,20 @@ void loop() {
   Serial.println("-------------------------");
 
   delay(500);
+}
+
+void adjustServoPosition() {
+    switch (servoCommand) {
+    case 1:
+      servoPosition = 1167;
+      break;
+    case 2:
+      servoPosition = 1835;
+      break;
+    case 3:
+      servoPosition = 1500;
+      break;
+  }
 }
 
 int convertVolts(float input) {

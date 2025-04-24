@@ -3,7 +3,7 @@
 
 int lightSensorLeft = 0;
 int lightSensorRight = 0;
-int thresholdForLightSensors = 5;
+int thresholdForLightSensors = 3;
 int diff = 0;
 int pos = 90;
 int temperatureSensor;
