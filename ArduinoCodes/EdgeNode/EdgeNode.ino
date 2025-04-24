@@ -8,11 +8,15 @@ int servoPosition = 1500;
 int m1 = 13, m2 = 12, en = 3;  // Changed en to pin 3
 int pot = A1, st = 0;
 
-int data;
+int data = 128;
+int servoCommand = 3;
+int motorCommand = 4;
+int commandCNT = 0;
 
 void setup() {
   Wire.begin(8);            // Join I2C bus with address 8
   Wire.onRequest(requestEvent);  // Register request event
+  Wire.onReceive(receiveEvent);
   Serial.begin(9600);       // Start Serial for debugging
 
   pinMode(m1, OUTPUT);
@@ -40,7 +44,6 @@ void loop() {
   digitalWrite(m1, HIGH);
   digitalWrite(m2, LOW);
 
-  // Serial Display (Virtual Terminal)
   Serial.print("Moisture (V): ");
   Serial.println(SensorVolts, 2);
 
@@ -77,5 +80,23 @@ int convertVolts(float input) {
 }
 
 void requestEvent() {
-  Wire.write(data); // Send data to Master
+  Wire.write(data); 
 }
+
+void receiveEvent() {
+  while (Wire.available()) {
+    int c = Wire.read();
+    if (commandCNT % 2 == 0) {
+      servoCommand = c;
+      Serial.print("Servo Command: ");
+      Serial.println(c);
+    } else {
+      motorCommand = c;
+      Serial.print("Motor Command: ");
+      Serial.println(c);
+    }
+    commandCNT += 1;
+    Serial.println("-------------------------");
+ }
+}
+
