@@ -10,6 +10,7 @@ int temperatureSensor;
 int Cnt = 0;
 int slaveValue = -1;
 int moisturePercentage = -1;
+float temperatureCelsius = 0;
 
 void setup() {
   Wire.begin();  // Join I2C bus as master
@@ -29,18 +30,22 @@ void loop() {
     } else if (diff < -thresholdForLightSensors) {
       // pos = 1835;
       pos = 150;
-      Wire.write(2);
+      Wire.write(3);
     } else {
       // pos = 1500;
       pos = 90;
-      Wire.write(3);
+      Wire.write(2);
     }
     if (moisturePercentage < 50) {
-      Wire.write(1);
-    } else if (80 < moisturePercentage) {
       Wire.write(4);
+    } else if (80 < moisturePercentage) {
+      Wire.write(1);
     } else {
-      Wire.write(2);
+      if (temperatureCelsius > 25) {
+        Wire.write(3);
+      } else {
+        Wire.write(2);
+      }
     }
     Wire.endTransmission();
   }
@@ -64,7 +69,7 @@ void loop() {
 
   // Temperature conversion
   float mv = (temperatureSensor / 1024.0) * 5000.0;  // in millivolts
-  float cel = mv / 10.0; // LM35: 10mV per degree Celsius
+  temperatureCelsius = mv / 10.0; // LM35: 10mV per degree Celsius
 
   // Display on Serial Monitor (Virtual Terminal)
   Serial.print("Left Light : ");
@@ -74,7 +79,7 @@ void loop() {
   Serial.println(lightSensorRight);
 
   Serial.print("Temp (C): ");
-  Serial.println(cel, 1); // one decimal place
+  Serial.println(temperatureCelsius, 1); // one decimal place
 
   Serial.print("Servo Pos: ");
   Serial.println(pos);

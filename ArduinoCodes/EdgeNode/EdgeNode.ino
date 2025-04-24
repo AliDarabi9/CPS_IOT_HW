@@ -5,13 +5,12 @@ Servo myservo;
 int moistureSensorValue;
 float SensorVolts; 
 int servoPosition = 1500;
-int m1 = 13, m2 = 12, en = 3;  // Changed en to pin 3
-int pot = A1, st = 0;
+int m1 = 13, m2 = 12, en = 3; 
+int motorSpeed = 0;
 
 int data = 128;
-int servoCommand = 3;
-int motorCommand = 4;
 int commandCNT = 0;
+
 
 void setup() {
   Wire.begin(8);            // Join I2C bus with address 8
@@ -36,11 +35,9 @@ void loop() {
 
   data = convertVolts(SensorVolts);
 
-  adjustServoPosition();
   myservo.write(servoPosition);
 
-  st = analogRead(pot) / 2;
-  analogWrite(en, st);
+  analogWrite(en, motorSpeed);
   digitalWrite(m1, HIGH);
   digitalWrite(m2, LOW);
 
@@ -52,25 +49,11 @@ void loop() {
   Serial.println(angle);
 
   Serial.print("Motor Speed: ");
-  Serial.println(st);
+  Serial.println(motorSpeed);
 
   Serial.println("-------------------------");
 
   delay(500);
-}
-
-void adjustServoPosition() {
-    switch (servoCommand) {
-    case 1:
-      servoPosition = 1167;
-      break;
-    case 2:
-      servoPosition = 1835;
-      break;
-    case 3:
-      servoPosition = 1500;
-      break;
-  }
 }
 
 int convertVolts(float input) {
@@ -102,11 +85,11 @@ void receiveEvent() {
   while (Wire.available()) {
     int c = Wire.read();
     if (commandCNT % 2 == 0) {
-      servoCommand = c;
+      servoPosition = 1167 + ((c - 1) * 333);
       Serial.print("Servo Command: ");
       Serial.println(c);
     } else {
-      motorCommand = c;
+      motorSpeed = (c - 1) * 50;
       Serial.print("Motor Command: ");
       Serial.println(c);
     }
