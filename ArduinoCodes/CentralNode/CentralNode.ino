@@ -15,7 +15,7 @@ float temperatureCelsius = 0;
 void setup() {
   Wire.begin();  // Join I2C bus as master
   Serial.begin(9600);
-  Serial.println("Master Ready");
+  Serial.println("<Central Node>");
   delay(2000);
   Serial.println();
 }

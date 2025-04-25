@@ -24,7 +24,7 @@ void setup() {
 
   myservo.attach(9);
 
-  Serial.println("Slave Ready");
+  Serial.println("<Edge Node Left>");
   delay(2000);
   Serial.println();
 }
