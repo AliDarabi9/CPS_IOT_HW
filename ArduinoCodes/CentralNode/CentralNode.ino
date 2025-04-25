@@ -1,16 +1,14 @@
-
 #include <Wire.h>
 
 int lightSensorLeft = 0;
 int lightSensorRight = 0;
 int thresholdForLightSensors = 3;
-int diff = 0;
-int pos = 90;
-int temperatureSensor;
+int lightSensorsDiff = 0;
+int flowerPotPosition = 90;
 int turnCNT = 0;
-int moisturePercentageLeftVolt = -1;
+int moistureLeft = -1;
 int moisturePercentageLeft = -1;
-int moisturePercentageRightVolt = -1;
+int moistureRight = -1;
 int moisturePercentageRight = -1;
 float temperatureCelsius = 0;
 
@@ -24,112 +22,88 @@ void setup() {
 
 void loop() {
   if (turnCNT % 2 == 1) {
-    Wire.requestFrom(9, 1);
-    while (Wire.available()) {
-      moisturePercentageRightVolt = Wire.read();
-    }
-    Wire.beginTransmission(8);
-    if (diff > thresholdForLightSensors) {
-      // pos = 1167;
-      pos = 30;
-      Wire.write(1);
-    } else if (diff < -thresholdForLightSensors) {
-      // pos = 1835;
-      pos = 150;
-      Wire.write(3);
-    } else {
-      // pos = 1500;
-      pos = 90;
-      Wire.write(2);
-    }
-    if (moisturePercentageLeft < 50) {
-      Wire.write(4);
-    } else if (80 < moisturePercentageLeft) {
-      Wire.write(1);
-    } else {
-      if (temperatureCelsius > 25) {
-        Wire.write(3);
-      } else {
-        Wire.write(2);
-      }
-    }
-    Wire.endTransmission();
-  }
-  else {
-    Wire.requestFrom(8, 1);
-    while (Wire.available()) {
-      moisturePercentageLeftVolt = Wire.read();
-    }
+    moistureRight = readMoisture(9);
+    sendCommands(8, moisturePercentageLeft);
+  } else {
+    moistureLeft = readMoisture(8);
     if (turnCNT > 0) { 
-      Wire.beginTransmission(9);
-      if (diff > thresholdForLightSensors) {
-        // pos = 1167;
-        pos = 30;
-        Wire.write(1);
-      } else if (diff < -thresholdForLightSensors) {
-        // pos = 1835;
-        pos = 150;
-        Wire.write(3);
-      } else {
-        // pos = 1500;
-        pos = 90;
-        Wire.write(2);
-      }
-      if (moisturePercentageRight < 50) {
-        Wire.write(4);
-      } else if (80 < moisturePercentageRight) {
-        Wire.write(1);
-      } else {
-        if (temperatureCelsius > 25) {
-          Wire.write(3);
-        } else {
-          Wire.write(2);
-        }
-      }
-      Wire.endTransmission();
+      sendCommands(9, moisturePercentageRight);
     }
   }
+  moisturePercentageLeft = convertToPercentage(moistureLeft);
+  moisturePercentageRight = convertToPercentage(moistureRight);
+  readLightSensors();
+  readTemperature();
+  logStatus();
 
-  moisturePercentageLeft = converter(moisturePercentageLeftVolt);
-  moisturePercentageRight = converter(moisturePercentageRightVolt);
+  turnCNT += 1;
+  delay(500);
+}
+
+int convertToPercentage(int input) {
+  int percentage = (input - 192) * 100;
+  percentage = percentage / (255 - 192);
+  return percentage;
+}
+
+void sendCommands(int addr, int moisturePercentage) {
+  Wire.beginTransmission(addr);
+  if (lightSensorsDiff > thresholdForLightSensors) {
+    flowerPotPosition = 30;
+    Wire.write(1);
+  } else if (lightSensorsDiff < -thresholdForLightSensors) {
+    flowerPotPosition = 150;
+    Wire.write(3);
+  } else {
+    flowerPotPosition = 90;
+    Wire.write(2);
+  }
+  if (moisturePercentage < 50) {
+    Wire.write(4); // Set Speed to 150
+  } else if (80 < moisturePercentage) {
+    Wire.write(1); // Set Speed to 0
+  } else {
+    if (temperatureCelsius > 25) {
+      Wire.write(3); // Set Speed to 100
+    } else {
+      Wire.write(2); // Set Speed to 50
+    }
+  }
+  Wire.endTransmission();
+}
+
+int readMoisture(int addr) {
+  Wire.requestFrom(addr, 1);
+  while (Wire.available()) {
+    return Wire.read();
+  }
+  return -1;
+}
+
+void readLightSensors() {
+  lightSensorLeft = analogRead(A0);
+  lightSensorRight = analogRead(A1);
+  lightSensorsDiff = lightSensorLeft - lightSensorRight;
+}
+
+void readTemperature() {
+  int sensorValue = analogRead(A2);
+  float millivolts = (sensorValue / 1024.0) * 5000.0;
+  temperatureCelsius = millivolts / 10.0;
+}
+
+void logStatus() {
   Serial.print("Moisture Percentage Left: ");
   Serial.println(moisturePercentageLeft);
   Serial.print("Moisture Percentage Right: ");
   Serial.println(moisturePercentageRight);
-
-  lightSensorLeft = analogRead(A0);
-  lightSensorRight = analogRead(A1);
-  temperatureSensor = analogRead(A2);
-
-  diff = lightSensorLeft - lightSensorRight;
-
-
-  // Temperature conversion
-  float mv = (temperatureSensor / 1024.0) * 5000.0;  // in millivolts
-  temperatureCelsius = mv / 10.0; // LM35: 10mV per degree Celsius
-
-  // Display on Serial Monitor (Virtual Terminal)
   Serial.print("Left Light : ");
   Serial.println(lightSensorLeft);
-
   Serial.print("Right Light: ");
   Serial.println(lightSensorRight);
-
   Serial.print("Temp (C): ");
-  Serial.println(temperatureCelsius, 1); // one decimal place
-
+  Serial.println(temperatureCelsius, 1);
   Serial.print("Servo Pos: ");
-  Serial.println(pos);
-
+  Serial.println(flowerPotPosition);
   Serial.println("------------------------");
-
-  turnCNT += 1;
-
-  delay(500);
-}
-
-int converter(int input) {
-  int outputPercent = (input - 192) * 100;
-  outputPercent = outputPercent / (255 - 192);
-  return outputPercent;
 }
