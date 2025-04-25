@@ -7,9 +7,11 @@ int thresholdForLightSensors = 3;
 int diff = 0;
 int pos = 90;
 int temperatureSensor;
-int Cnt = 0;
-int slaveValue = -1;
-int moisturePercentage = -1;
+int turnCNT = 0;
+int moisturePercentageLeftVolt = -1;
+int moisturePercentageLeft = -1;
+int moisturePercentageRightVolt = -1;
+int moisturePercentageRight = -1;
 float temperatureCelsius = 0;
 
 void setup() {
@@ -21,7 +23,11 @@ void setup() {
 }
 
 void loop() {
-  if (Cnt % 2 == 1) {
+  if (turnCNT % 2 == 1) {
+    Wire.requestFrom(9, 1);
+    while (Wire.available()) {
+      moisturePercentageRightVolt = Wire.read();
+    }
     Wire.beginTransmission(8);
     if (diff > thresholdForLightSensors) {
       // pos = 1167;
@@ -36,9 +42,9 @@ void loop() {
       pos = 90;
       Wire.write(2);
     }
-    if (moisturePercentage < 50) {
+    if (moisturePercentageLeft < 50) {
       Wire.write(4);
-    } else if (80 < moisturePercentage) {
+    } else if (80 < moisturePercentageLeft) {
       Wire.write(1);
     } else {
       if (temperatureCelsius > 25) {
@@ -52,13 +58,44 @@ void loop() {
   else {
     Wire.requestFrom(8, 1);
     while (Wire.available()) {
-      slaveValue = Wire.read();
+      moisturePercentageLeftVolt = Wire.read();
+    }
+    if (turnCNT > 0) { 
+      Wire.beginTransmission(9);
+      if (diff > thresholdForLightSensors) {
+        // pos = 1167;
+        pos = 30;
+        Wire.write(1);
+      } else if (diff < -thresholdForLightSensors) {
+        // pos = 1835;
+        pos = 150;
+        Wire.write(3);
+      } else {
+        // pos = 1500;
+        pos = 90;
+        Wire.write(2);
+      }
+      if (moisturePercentageRight < 50) {
+        Wire.write(4);
+      } else if (80 < moisturePercentageRight) {
+        Wire.write(1);
+      } else {
+        if (temperatureCelsius > 25) {
+          Wire.write(3);
+        } else {
+          Wire.write(2);
+        }
+      }
+      Wire.endTransmission();
     }
   }
 
-  moisturePercentage = converter(slaveValue);
-  Serial.print("Moisture: ");
-  Serial.println(moisturePercentage);
+  moisturePercentageLeft = converter(moisturePercentageLeftVolt);
+  moisturePercentageRight = converter(moisturePercentageRightVolt);
+  Serial.print("Moisture Percentage Left: ");
+  Serial.println(moisturePercentageLeft);
+  Serial.print("Moisture Percentage Right: ");
+  Serial.println(moisturePercentageRight);
 
   lightSensorLeft = analogRead(A0);
   lightSensorRight = analogRead(A1);
@@ -86,7 +123,7 @@ void loop() {
 
   Serial.println("------------------------");
 
-  Cnt += 1;
+  turnCNT += 1;
 
   delay(500);
 }
