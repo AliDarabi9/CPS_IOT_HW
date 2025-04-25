@@ -1,84 +1,81 @@
 #include <Servo.h>
 #include <Wire.h>
 
-Servo myservo;
-int moistureSensorValue;
-float SensorVolts; 
-int servoPosition = 1500;
-int m1 = 13, m2 = 12, en = 3; 
-int motorSpeed = 0;
+const int I2C_ADDRESS = 8;
 
-int data = 128;
+const float VOLTAGE_CONVERSION = 0.0048828125;
+const int SERVO_MIN_PULSE = 1000;
+const int SERVO_MAX_PULSE = 2000;
+
+Servo myservo;
+int moistureSensorValue = 0;
+float sensorVoltage = 0.0;
+int servoPosition = 1500;
+int motorSpeed = 0;
+int dataToSend = 128;
 int commandCNT = 0;
 
-
 void setup() {
-  Wire.begin(8);            // Join I2C bus with address 8
-  Wire.onRequest(requestEvent);  // Register request event
+  Wire.begin(I2C_ADDRESS);
+  Wire.onRequest(requestEvent);
   Wire.onReceive(receiveEvent);
-  Serial.begin(9600);       // Start Serial for debugging
 
-  pinMode(m1, OUTPUT);
-  pinMode(m2, OUTPUT);
-  pinMode(en, OUTPUT);
-
-  myservo.attach(9);
-
+  Serial.begin(9600);
   Serial.println("<Edge Node Left>");
   delay(2000);
   Serial.println();
+
+  pinMode(13, OUTPUT);
+  pinMode(12, OUTPUT);
+  pinMode(3, OUTPUT);
+
+  myservo.attach(9);
 }
 
 void loop() {
+  readMoistureSensor();
+  updateActuators();
+  logStatus();
+  delay(500);
+}
+
+void readMoistureSensor() {
   moistureSensorValue = analogRead(A0);
-  SensorVolts = moistureSensorValue * 0.0048828125;
+  sensorVoltage = moistureSensorValue * VOLTAGE_CONVERSION;
+  dataToSend = converter(sensorVoltage);
+}
 
-  data = convertVolts(SensorVolts);
-
+void updateActuators() {
   myservo.write(servoPosition);
+  analogWrite(3, motorSpeed);
+  digitalWrite(13, HIGH);
+  digitalWrite(12, LOW);
+}
 
-  analogWrite(en, motorSpeed);
-  digitalWrite(m1, HIGH);
-  digitalWrite(m2, LOW);
-
+void logStatus() {
   Serial.print("Moisture (V): ");
-  Serial.println(SensorVolts, 2);
+  Serial.println(sensorVoltage, 2);
 
   Serial.print("Servo Angle: ");
-  int angle = map(servoPosition, 1000, 2000, 0, 180);
+  int angle = map(servoPosition, SERVO_MIN_PULSE, SERVO_MAX_PULSE, 0, 180);
   Serial.println(angle);
 
   Serial.print("Motor Speed: ");
   Serial.println(motorSpeed);
-
   Serial.println("-------------------------");
-
-  delay(500);
 }
 
-int convertVolts(float input) {
-  int multipliedInt = input * 100;
-    // Map from original range (0-500) to (128-255)
-  int mappedValue = map(multipliedInt, 0, 500, 128, 255);
-    // Apply your special mapping rules
-  int finalValue;
-  if (mappedValue <= 129) {
-    finalValue = 128;
-  } else if (mappedValue >= 254) {
-    finalValue = 254;
-  } else {
-    if (mappedValue % 2 == 0) {
-      finalValue = mappedValue;
-    } 
-    else {
-      finalValue = mappedValue + 1;
-    }
-  }
-  return finalValue;
+int converter(float input) {
+  int value = input * 100;
+  int mappedValue = map(value, 0, 500, 128, 255);
+
+  if (mappedValue <= 129) return 128;
+  if (mappedValue >= 254) return 254;
+  return (mappedValue % 2 == 0) ? mappedValue : mappedValue + 1;
 }
 
 void requestEvent() {
-  Wire.write(data); 
+  Wire.write(dataToSend);
 }
 
 void receiveEvent() {
@@ -93,8 +90,7 @@ void receiveEvent() {
       Serial.print("Motor Command: ");
       Serial.println(c);
     }
-    commandCNT += 1;
+    commandCNT++;
     Serial.println("-------------------------");
- }
+  }
 }
-
